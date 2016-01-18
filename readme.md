@@ -3,6 +3,8 @@ DataList is a java.util.List implementation, that store items at files.
 It is designed to filter and show millions items in real time.
 The high speed of search and reading data is reached due to write restriction: when one thread append data, all other reads/writes failed.
 
+[Example](blob/master/src/examples/DataListExample.java)
+
 # Highlights
 + Very fast in read-only scenario
 + Pure Java (based on java.nio FileChannel & ByteBuffer)
