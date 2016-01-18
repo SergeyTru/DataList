@@ -3,7 +3,7 @@ DataList is a java.util.List implementation, that store items at files.
 It is designed to filter and show millions items in real time.
 The high speed of search and reading data is reached due to write restriction: when one thread append data, all other reads/writes failed.
 
-[Example](blob/master/src/examples/DataListExample.java)
+[Example](src/examples/DataListExample.java)
 
 # Highlights
 + Very fast in read-only scenario
@@ -38,3 +38,5 @@ First we import 2'000'000 items. DataList handle master items by itself, so data
 Then we add another 630 000 items. DataList rewrites indexes at both tables, H2 - no.
 Then we try to filter data by 2 criteria (both indexes are used). DataList build item indexes list at half of second (real time). It removes 2645 from details table and 64 items from master (and keeps more than 99% items). It requires 12 seconds to fully load 2 million items.
 There are many ways to load data from database. We load indexes first (28 seconds) and then fetch by 200 by UID index (16 seconds).
+
+[Comparsion code](src/examples/speed)
