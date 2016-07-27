@@ -17,6 +17,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,7 +73,7 @@ public class DataList<T> extends AbstractList<T> implements AutoCloseable
       public void cleaned(DataList<T> list)
       {
         for (IndexInfo index: indexes)
-          index.index.clear();
+          index.getIndex().clear();
       }
 
       @Override
@@ -89,12 +90,12 @@ public class DataList<T> extends AbstractList<T> implements AutoCloseable
           T line = get(lineIdx);
           i = indexes.size();
           while (--i >= 0)
-            allValues.get(i).add(new KeyToIndex((Comparable)indexes.get(i).mapper.apply(line), lineIdx));
+            indexes.get(i).collectTo(allValues.get(i), line, lineIdx);
         }
         i = indexes.size();
         while (--i >= 0)
         {
-          indexes.get(i).index.recreate(allValues.get(i));
+          indexes.get(i).getIndex().recreate(allValues.get(i));
           allValues.set(i, null); //collect garbage as soon as possible
         }
       }
@@ -109,7 +110,14 @@ public class DataList<T> extends AbstractList<T> implements AutoCloseable
   @SuppressWarnings("unchecked")
   public <U extends Comparable<U>> DataList<T> withIndex(Index<U> index, Function<T, U> mapper, boolean indexNulls)
   {
-    indexes.add(new IndexInfo(index, mapper, indexNulls));
+    indexes.add(new SimpleIndexInfo(index, mapper, indexNulls));
+    return this;
+  }
+
+  @SuppressWarnings("unchecked")
+  public <U extends Comparable<U>> DataList<T> withMulticastIndex(Index<U> index, Function<T, Collection<U>> mapper, boolean indexNulls)
+  {
+    indexes.add(new MulticastIndexInfo(index, mapper, indexNulls));
     return this;
   }
 
@@ -269,12 +277,12 @@ public class DataList<T> extends AbstractList<T> implements AutoCloseable
 
   public List<Index> getIndexes()
   {
-    return indexes.stream().map(x -> x.index).collect(Collectors.toList());
+    return indexes.stream().map(x -> x.getIndex()).collect(Collectors.toList());
   }
 
   public boolean hasIndex(Index<?> index)
   {
-    return indexes.stream().anyMatch(x -> x.index.equals(index));
+    return indexes.stream().anyMatch(x -> x.getIndex().equals(index));
   }
 
   public <T extends Comparable<T>> Where where(Index<T> index, T value)
@@ -432,20 +440,79 @@ public class DataList<T> extends AbstractList<T> implements AutoCloseable
     }
   }
 
-  private class IndexInfo<U extends Comparable<U>>
+  private interface IndexInfo<T, U extends Comparable<U>>
+  {
+    Index<U> getIndex();
+    SortedIntSet allForObject(T object);
+    void collectTo(List<KeyToIndex> addTo, T line, int lineIdx);
+  }
+
+  private class SimpleIndexInfo<U extends Comparable<U>> implements IndexInfo<T, U>
   {
     final Index<U> index;
     final Function<T, U> mapper;
 
-    public IndexInfo(Index<U> index, Function<T, U> mapper, boolean indexNulls)
+    public SimpleIndexInfo(Index<U> index, Function<T, U> mapper, boolean indexNulls)
     {
       this.index = index;
       this.mapper = mapper;
     }
-    
+
+    @Override
+    public Index<U> getIndex()
+    {
+      return index;
+    }
+
+    @Override
     public SortedIntSet allForObject(T object)
     {
       return index.valuesFor(mapper.apply(object));
+    }
+
+    @Override
+    public void collectTo(List<KeyToIndex> addTo, T line, int lineIdx)
+    {
+      addTo.add(new KeyToIndex(mapper.apply(line), lineIdx));
+    }
+  }
+
+  private class MulticastIndexInfo<U extends Comparable<U>> implements IndexInfo<T, U>
+  {
+    final Index<U> index;
+    final Function<T, Collection<U>> mapper;
+
+    public MulticastIndexInfo(Index<U> index, Function<T, Collection<U>> mapper, boolean indexNulls)
+    {
+      this.index = index;
+      this.mapper = mapper;
+    }
+
+    @Override
+    public Index<U> getIndex()
+    {
+      return index;
+    }
+    
+    @Override
+    public SortedIntSet allForObject(T object)
+    {
+      Collection<U> allValues = mapper.apply(object);
+      if (allValues == null || allValues.isEmpty())
+        return SortedIntSet.empty();
+      Iterator<U> it = allValues.iterator();
+      SortedIntSet inds = index.valuesFor(it.next());
+      while (it.hasNext())
+        inds.union(index.valuesFor(it.next()));
+      return inds;
+    }
+
+    @Override
+    public void collectTo(List<KeyToIndex> addTo, T line, int lineIdx)
+    {
+      Collection<U> allValues = mapper.apply(line);
+      if (allValues != null)
+        allValues.forEach(x -> addTo.add(new KeyToIndex(x, lineIdx)));
     }
   }
 }
