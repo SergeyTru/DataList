@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import static org.junit.Assert.fail;
 import org.junit.Test;
@@ -36,6 +37,25 @@ public class SetIndexTest
     try (SetIndex<Integer> index = new SetIndex<>(idxFile, DBDataStreamers.ints_with_nulls))
     {
       checkResult(index, keysCount, itemsPerKey);
+    }
+  }
+
+  @Test
+  public void testRequestAll() throws IOException
+  {
+    final int keysCount = 10;
+    final int itemsPerKey = 10;
+    List<KeyToIndex<Integer>> map = createMap(keysCount, itemsPerKey);
+    File idxFile = createTempFile();
+    try (SetIndex<Integer> index = new SetIndex<>(idxFile, DBDataStreamers.ints_with_nulls))
+    {
+      index.recreate(map);
+      Assert.assertEquals(keysCount * itemsPerKey, index.valuesFor(map.stream().map(x -> x.getKey()).collect(Collectors.toList())).size());
+    }
+    //close and reopen
+    try (SetIndex<Integer> index = new SetIndex<>(idxFile, DBDataStreamers.ints_with_nulls))
+    {
+      Assert.assertEquals(keysCount * itemsPerKey, index.valuesFor(map.stream().map(x -> x.getKey()).collect(Collectors.toList())).size());
     }
   }
 

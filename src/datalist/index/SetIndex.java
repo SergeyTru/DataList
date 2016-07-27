@@ -193,20 +193,21 @@ public class SetIndex<T extends Comparable<T>> implements Index<T>, AutoCloseabl
     }
   }
 
-  private boolean allKeysRequired(Collection<T> rkeys)
-  {
-    for (KeyWithRange<T> key: keys)
-      if (!rkeys.contains(key.key))
-        return false;
-    return true;
-  }
+  //private boolean allKeysRequired(Collection<T> rkeys)
+  //{
+  //  for (KeyWithRange<T> key: keys)
+  //    if (!rkeys.contains(key.key))
+  //      return false;
+  //  return true;
+  //}
 
   @Override
   public SortedIntSet valuesFor(Collection<T> keys)
   {
-    if (keys.size() >= this.keys.size())
-      if (allKeysRequired(keys))
-        return SortedIntSet.allValues(this.keys.size());
+    //Code below does not work: it return keys count instead of values range
+    //if (keys.size() >= this.keys.size())
+    //  if (allKeysRequired(keys))
+    //    return SortedIntSet.allValues(this.keys.size());
 
     try (ReadBuffer reader = new ReadBuffer(fc, buffSizeR))
     {
