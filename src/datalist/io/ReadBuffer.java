@@ -204,7 +204,8 @@ public class ReadBuffer extends InputStream implements AutoCloseable
 
     try
     {
-      fc.read(buff, pos + buff.position());
+      while (buff.hasRemaining() && buff.position() < size && fc.position() < fc.size())
+        fc.read(buff, pos + buff.position());
       buff.flip();
     }
     catch (IOException ex)
