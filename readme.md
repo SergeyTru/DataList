@@ -24,14 +24,14 @@ DataList was designed for stand-alone java application with predefined items. Th
 Databases designed for high concurrency selection, update and deletion. For our purposes this is unnecessary overhead that requires a lot of time.
 DataList takes about 0.5 - 1 second to filter data and append text search. Look at comparison table below.
 
-|     Stage                    | DataList |  H2 DB   |
-| ---------------------------- | --------:| --------:|
-| Import first 2 million items | 22,7 sec | 29,2 sec |
-| Add indexes                  |  9,7 sec | 12,4 sec |
-| Add more 630 000 items       | 19,5 sec | 12,6 sec |
-| Find elements ( >99% )       |  0,5 sec | 27,9 sec |
-| Fetch founded items          | 12,0 sec | 15,9 sec |
-| Storage size                 |  1297 Mb |  5160 Mb |
+|     Stage                    | DataList  |  H2 DB     |
+| ---------------------------- | ---------:| ----------:|
+| Import first 2 million items | 22,7 sec  |  29,2 sec  |
+| Add indexes                  |  9,7 sec  |  12,4 sec  |
+| Add more 630 000 items       | 19,5 sec  |  12,6 sec  |
+| **Find elements ( >99% )**   |**0,5 sec**|**27,9 sec**|
+| Fetch founded items          | 12,0 sec  |  15,9 sec  |
+| Storage size                 |  1297 Mb  |   5160 Mb  |
 
 For this comparison, we add our 2'630'000 (+27'000) to Master/details DataList and H2 database.
 First we import 2'000'000 items. DataList handle master items by itself, so data added from linear csv table. Half time - reading data by java.io.BufferedReader. To speed up h2 import, data separated to two lists and then imported by 200 items batches. Then we add 2 indexes: one for master table, one for details. Also we add primary key for master table.
